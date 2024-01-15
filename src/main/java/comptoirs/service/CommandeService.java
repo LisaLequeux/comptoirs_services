@@ -2,6 +2,7 @@ package comptoirs.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.NoSuchElementException;
 
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
@@ -106,8 +107,25 @@ public class CommandeService {
      */
     @Transactional
     public Ligne ajouterLigne(int commandeNum, int produitRef, @Positive int quantite) {
-        // TODO : implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        var commande = commandeDao.findById(commandeNum).orElseThrow();
+        var produit = produitDao.findById(produitRef).orElseThrow();
+
+        if(commande.getEnvoyeele() != null){
+            throw new IllegalStateException("La commande a déjà été envoyée");
+        }
+
+        int quantiteStock = produit.getUnitesEnStock();
+        int quantiteCommande = produit.getUnitesCommandees()+quantite;
+
+        if(quantiteStock < quantiteCommande){
+            throw new IllegalStateException("Le stock est insuffisant");
+        }
+
+        Ligne nouvelleLigne = new Ligne(commande, produit, quantite);
+        nouvelleLigne.getProduit().setUnitesCommandees(nouvelleLigne.getProduit().getUnitesCommandees()+quantite);
+        ligneDao.save(nouvelleLigne);
+
+        return nouvelleLigne;
     }
 
     /**
@@ -125,12 +143,16 @@ public class CommandeService {
      *
      * @param commandeNum la clé de la commande
      * @return la commande mise à jour
-     * @throws java.util.NoSuchElementException si la commande n'existe pas
+     * @throws NoSuchElementException si la commande n'existe pas
      * @throws IllegalStateException            si la commande a déjà été envoyée
      */
     @Transactional
     public Commande enregistreExpedition(int commandeNum) {
-        // TODO : implémenter cette méthode
-        throw new UnsupportedOperationException("Pas encore implémenté");
+        var commande = commandeDao.findById(commandeNum).orElseThrow();
+
+        if(commande.getEnvoyeele() != null){
+            throw new IllegalStateException("La commande est déjà expédiée");
+        }
+
     }
 }
